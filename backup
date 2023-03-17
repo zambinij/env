@@ -1,4 +1,33 @@
-use std::{io::{self, BufReader, Read}, fs::{File}, collections::HashSet};
+use std::{io::{self, BufReader, Read}, fs::{File}, str::FromStr, collections::HashSet};
+
+#[derive(Debug)]
+
+enum ComparisonMode {
+    Keys,
+    Values
+}
+
+
+impl ComparisonMode {
+    fn as_string(&self) -> &str {
+        match *self {
+            ComparisonMode::Keys => "keys",
+            ComparisonMode::Values => "values",
+        }
+    }
+}
+
+impl FromStr for ComparisonMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_str() {
+            "keys" => Ok(ComparisonMode::Keys),
+            "values" => Ok(ComparisonMode::Values),
+            _ => Err(())
+        }
+    }
+}
 
 struct Env {
     content: String,
@@ -34,10 +63,32 @@ fn main() {
     let user_env_path: String = envs[1].trim().to_string();
     let user_env_content: Env = read_file(user_env_path);
     let user_keys: Vec<&str> = extract_env_keys(&user_env_content.content);
+    
+    let example_keys_set: HashSet<_> = example_keys.iter().cloned().collect();
+    let user_keys_set: HashSet<_> = user_keys.iter().cloned().collect();
 
-    let missing_from_user: Vec<&str> = find_missing_keys(&example_keys, &user_keys);
+    let missing_from_user: Vec<_> = example_keys_set.difference(&user_keys_set).cloned().collect();
 
     println!("You are missing the following keys: \n{:#?}", missing_from_user);
+    
+    // println!("What comparison mode do you want to use?");
+    // println!("'Keys' checks only for keys that are missing");
+    // println!("'Values' checks for both missing keys and different values");
+    // let mut input_comparison_mode: String = String::new();
+
+    // io::stdin()
+    //     .read_line(&mut input_comparison_mode)
+    //     .expect("Failed to read input");
+
+    // let comparison_mode: ComparisonMode = match input_comparison_mode.trim().parse::<ComparisonMode>() {
+    //     Ok(comparison_mode) => comparison_mode,
+    //     Err(_) => {
+    //         println!("You must choose between 'keys' or 'values' option.");
+    //         return;
+    //     }
+    // };
+
+    // println!("{}", comparison_mode.as_string());
 }
 
 fn read_file(file_path: String) -> Env {
@@ -66,13 +117,4 @@ fn extract_env_keys(contents: &str) -> Vec<&str> {
     });
 
     env_keys
-}
-
-fn find_missing_keys<'a>(example_keys: &'a Vec<&str>, user_keys: &'a Vec<&str>) -> Vec<&'a str> {
-    let example_keys_set: HashSet<_> = example_keys.iter().cloned().collect();
-    let user_keys_set: HashSet<_> = user_keys.iter().cloned().collect();
-
-    let missing_from_user: Vec<&'a str> = example_keys_set.difference(&user_keys_set).cloned().collect();
-
-    missing_from_user
 }
